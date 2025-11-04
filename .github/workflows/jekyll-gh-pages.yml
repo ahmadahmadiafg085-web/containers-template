@@ -1,0 +1,161 @@
+# ============================================================
+# 🌐 VortexHub Auto Deployment Workflow (v3.0-PRO)
+# Author: Dr. S. M. H. Sadat / VortexHub Labs
+# Purpose: Unified automation for Jekyll, CDN, Backup, and Cloud Deployments
+# ============================================================
+
+name: VortexHub Full Auto-Deploy
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  SITE_DIR: ./_site
+  CDN_BUCKET: vortexhub-cdn
+  R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+  R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
+  R2_SECRET_KEY: ${{ secrets.R2_SECRET_KEY }}
+  TELEMETRY_URL: https://api.vortexhub.app/telemetry
+  BACKUP_PATH: ./backups
+
+# ============================================================
+# JOB 1️⃣ — BUILD STATIC SITE (Jekyll)
+# ============================================================
+jobs:
+  build:
+    name: "Build Jekyll Site"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ${{ env.SITE_DIR }}
+
+      - name: Upload build artifact
+        uses: actions/upload-pages-artifact@v3
+
+# ============================================================
+# JOB 2️⃣ — DEPLOY TO GITHUB PAGES
+# ============================================================
+  deploy:
+    name: "Deploy to GitHub Pages"
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy artifact
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+# ============================================================
+# JOB 3️⃣ — SYNC TO CDN (Cloudflare R2 / S3 Compatible)
+# ============================================================
+  cdn-sync:
+    name: "Sync to CDN (Cloudflare R2)"
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rclone for R2
+        run: |
+          sudo apt-get update && sudo apt-get install -y rclone
+          rclone config create vortexhub s3 \
+            provider=Cloudflare \
+            env_auth=false \
+            access_key_id=${{ env.R2_ACCESS_KEY }} \
+            secret_access_key=${{ env.R2_SECRET_KEY }} \
+            endpoint=https://${{ env.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+
+      - name: Sync site to R2 CDN
+        run: |
+          rclone sync ${{ env.SITE_DIR }} vortexhub:${{ env.CDN_BUCKET }} --progress
+        continue-on-error: true
+
+# ============================================================
+# JOB 4️⃣ — BACKUP TO CLOUD STORAGE
+# ============================================================
+  backup:
+    name: "Cloud Backup (AWS/GDrive)"
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create backup package
+        run: |
+          mkdir -p ${{ env.BACKUP_PATH }}
+          tar -czf ${{ env.BACKUP_PATH }}/site_backup_$(date +%Y%m%d).tar.gz ${{ env.SITE_DIR }}
+
+      - name: Upload to Google Drive (via rclone)
+        run: |
+          rclone config create gdrive drive scope=drive.file token=${{ secrets.GDRIVE_TOKEN }} config_is_local=false
+          rclone copy ${{ env.BACKUP_PATH }} gdrive:vortexhub_backups --progress
+        continue-on-error: true
+
+# ============================================================
+# JOB 5️⃣ — HEALTH CHECK + TELEMETRY
+# ============================================================
+  healthcheck:
+    name: "Health & Telemetry Report"
+    runs-on: ubuntu-latest
+    needs: [deploy, cdn-sync]
+    steps:
+      - name: Check deployment URL
+        run: |
+          echo "Checking deployment status..."
+          curl -Is ${{ needs.deploy.outputs.page_url }} | head -n 1
+
+      - name: Send telemetry
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+            -d '{"event":"deploy_complete","status":"ok","timestamp":"'$(date -u +%FT%TZ)'"}' \
+            ${{ env.TELEMETRY_URL }}
+
+# ============================================================
+# JOB 6️⃣ — VPS / HOST SYNC (Optional)
+# ============================================================
+  vps-sync:
+    name: "Deploy to VPS (Render / DigitalOcean / Custom)"
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: ${{ secrets.VPS_HOST }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_KEY }}
+          script: |
+            mkdir -p /var/www/vortexhub/
+            cd /var/www/vortexhub/
+            rm -rf *
+            curl -L ${{ needs.deploy.outputs.page_url }} | tar xz
+            systemctl restart nginx
+            
