@@ -1,0 +1,258 @@
+import { exec } from "child_process";
+import fs from "fs";
+import path from "path";
+import http from "http";
+import WebSocket, { WebSocketServer } from "ws";
+import crypto from "crypto";
+
+// -------------------------------------
+// Interfaces (Common Syntax Across Langs)
+// -------------------------------------
+
+interface RepoConfig {
+  name: string;
+  ssh_url: string;
+  https_url: string;
+  folder: string;
+  role: "primary" | "fallback";
+}
+
+interface ScanResult {
+  file: string;
+  size: number;
+  lines: number;
+  extension: string;
+  contentPreview: string;
+  hash?: string;
+  error?: string;
+}
+
+interface RepoAnalysis {
+  repo: string;
+  path: string;
+  files: ScanResult[];
+  fingerprint: string;
+}
+
+interface Task {
+  type: "command" | "service" | "script" | "data";
+  content: string;
+}
+
+// -------------------------------------
+// Crash-Free Exec (Zero Error)
+// -------------------------------------
+
+const safeExec = async (cmd: string) => {
+  return new Promise<string>((resolve) => {
+    try {
+      exec(cmd, { maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
+        if (err) resolve("");
+        else resolve(stdout.trim());
+      });
+    } catch {
+      resolve("");
+    }
+  });
+};
+
+// -------------------------------------
+// Git Clone + Pull (Resilient)
+// -------------------------------------
+
+const cloneOrPullRepo = async (repo: RepoConfig): Promise<string> => {
+  const localPath = path.join(process.cwd(), repo.folder);
+  try {
+    if (fs.existsSync(localPath)) {
+      await safeExec(`git -C ${localPath} pull --no-edit`);
+    } else {
+      await safeExec(`git clone ${repo.ssh_url} ${localPath}`);
+    }
+  } catch {}
+  return localPath;
+};
+
+// -------------------------------------
+// File Hash (Integrity + Diff Detection)
+// -------------------------------------
+
+const fileHash = (buffer: Buffer) => {
+  try {
+    return crypto.createHash("sha256").update(buffer).digest("hex");
+  } catch {
+    return "";
+  }
+};
+
+// -------------------------------------
+// Directory Scanner (Auto Repairing)
+// -------------------------------------
+
+const scanDirectory = (dirPath: string): ScanResult[] => {
+  const results: ScanResult[] = [];
+
+  let files: string[] = [];
+  try {
+    files = fs.readdirSync(dirPath);
+  } catch {
+    results.push({ file: dirPath, size: 0, lines: 0, extension: "", contentPreview: "", error: "Cannot read directory" });
+    return results;
+  }
+
+  for (const file of files) {
+    const fullPath = path.join(dirPath, file);
+    try {
+      const stat = fs.statSync(fullPath);
+
+      if (stat.isDirectory()) {
+        results.push(...scanDirectory(fullPath));
+      } else {
+        let contentPreview = "";
+        let content = Buffer.from("");
+
+        try {
+          content = fs.readFileSync(fullPath);
+          contentPreview = content.toString("utf-8").slice(0, 150);
+        } catch {}
+
+        results.push({
+          file: fullPath,
+          size: stat.size,
+          lines: contentPreview.split("\n").length,
+          extension: path.extname(fullPath),
+          contentPreview,
+          hash: fileHash(content),
+        });
+      }
+    } catch {
+      results.push({
+        file: fullPath,
+        size: 0,
+        lines: 0,
+        extension: path.extname(fullPath),
+        contentPreview: "",
+        error: "Cannot access file stats",
+      });
+    }
+  }
+
+  return results;
+};
+
+// -------------------------------------
+// Repo Analyzer + Fingerprint Generator
+// -------------------------------------
+
+const analyzeRepo = async (repo: RepoConfig): Promise<RepoAnalysis> => {
+  const localPath = await cloneOrPullRepo(repo);
+  const files = scanDirectory(localPath);
+
+  const fingerprint = crypto
+    .createHash("sha256")
+    .update(files.map((f) => f.hash || "").join(""))
+    .digest("hex");
+
+  return { repo: repo.name, path: localPath, files, fingerprint };
+};
+
+// -------------------------------------
+// Smart Input Engine (Command + Script + Service)
+// -------------------------------------
+
+const processInput = (input: string): Task => {
+  const t = input.trim().toLowerCase();
+
+  if (t.startsWith("run ") || t.startsWith("exec ")) {
+    return { type: "command", content: input };
+  }
+  if (t.includes("service") || t.includes("daemon") || t.includes("worker")) {
+    return { type: "service", content: input };
+  }
+  if (t.endsWith(".ts") || t.endsWith(".js") || t.endsWith(".sh") || t.endsWith(".py")) {
+    return { type: "script", content: input };
+  }
+  return { type: "data", content: input };
+};
+
+// -------------------------------------
+// Real‑Time Engine: HTTP + WebSocket + Webhook
+// -------------------------------------
+
+const PORT = 8080;
+const HOOKS: string[] = [];
+
+const server = http.createServer((req, res) => {
+  if (req.url === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ status: "ok", uptime: process.uptime() }));
+  }
+
+  if (req.url === "/register-hook" && req.method === "POST") {
+    let body = "";
+    req.on("data", (d) => (body += d));
+    req.on("end", () => {
+      try {
+        const data = JSON.parse(body);
+        if (data.url) HOOKS.push(data.url);
+      } catch {}
+      res.end(JSON.stringify({ ok: true }));
+    });
+    return;
+  }
+
+  res.writeHead(404);
+  res.end("Not Found");
+});
+
+const wss = new WebSocketServer({ server });
+
+const broadcast = (data: any) => {
+  const msg = JSON.stringify(data);
+  wss.clients.forEach((client) => {
+    try {
+      client.send(msg);
+    } catch {}
+  });
+};
+
+// -------------------------------------
+// Main Loop (Realtime Monitor + Trigger System)
+// -------------------------------------
+
+const REPOS: RepoConfig[] = [
+  {
+    name: "vortex-universal-orchestrator",
+    ssh_url: "git@github.com:ahmadahmadiafg085-web/vortex-universal-orchestrator.git",
+    https_url: "https://github.com/ahmadahmadiafg085-web/vortex-universal-orchestrator.git",
+    folder: "container_src",
+    role: "primary",
+  },
+  {
+    name: "vortex-config",
+    ssh_url: "git@github.com:ahmadahmadiafg085-web/vortex-config.git",
+    https_url: "https://github.com/ahmadahmadiafg085-web/vortex-config.git",
+    folder: "config",
+    role: "fallback",
+  },
+];
+
+const start = async () => {
+  server.listen(PORT);
+
+  setInterval(async () => {
+    const results = [];
+    for (const r of REPOS) {
+      const analysis = await analyzeRepo(r);
+      results.push(analysis);
+
+      broadcast({ event: "repo-update", repo: r.name, fingerprint: analysis.fingerprint });
+      for (const h of HOOKS) {
+        safeExec(`curl -X POST -d '${JSON.stringify(analysis)}' ${h}`);
+      }
+    }
+
+    fs.writeFileSync("repo_analysis.json", JSON.stringify(results, null, 2));
+  }, 5000); // هر ۵ ثانیه مانیتور تریگر
+};
+
+start();
