@@ -11,51 +11,59 @@ import (
 	"time"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	message := os.Getenv("MESSAGE")
-	instanceId := os.Getenv("CLOUDFLARE_DURABLE_OBJECT_ID")
-	fmt.Fprintf(w, "Hi, I'm a container and this is my message: \"%s\", my instance ID is: %s", message, instanceId)
+func env(k, fallback string) string {
+	v := os.Getenv(k)
+	if v == "" {
+		return fallback
+	}
+	return v
+}
 
+func handler(w http.ResponseWriter, r *http.Request) {
+	message := env("MESSAGE", "Default message")
+	instanceId := env("INSTANCE_ID", "no-instance")
+	fmt.Fprintf(w, `{"status":"ok","message":"%s","instance":"%s"}`, message, instanceId)
+}
+
+func health(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"health":"ok"}`))
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request) {
-	panic("This is a panic")
+	panic("panic test")
 }
 
 func main() {
-	// Listen for SIGINT and SIGTERM
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
-	router := http.NewServeMux()
-	router.HandleFunc("/", handler)
-	router.HandleFunc("/container", handler)
-	router.HandleFunc("/error", errorHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handler)
+	mux.HandleFunc("/health", health)
+	mux.HandleFunc("/error", errorHandler)
 
 	server := &http.Server{
-		Addr:    ":8080",
-		Handler: router,
+		Addr:    env("PORT", ":8080"),
+		Handler: mux,
 	}
 
 	go func() {
-		log.Printf("Server listening on %s\n", server.Addr)
+		log.Printf("server started on %s", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal(err)
+			log.Fatalf("server error: %v", err)
 		}
 	}()
 
-	// Wait to receive a signal
 	sig := <-stop
+	log.Printf("shutdown triggered: %v", sig)
 
-	log.Printf("Received signal (%s), shutting down server...", sig)
-
-	// Give the server 5 seconds to shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatal(err)
+		log.Fatalf("shutdown error: %v", err)
 	}
 
-	log.Println("Server shutdown successfully")
+	log.Println("server gracefully stopped")
 }
