@@ -1,258 +1,202 @@
-import { exec } from "child_process";
-import fs from "fs";
-import path from "path";
-import http from "http";
-import WebSocket, { WebSocketServer } from "ws";
-import crypto from "crypto";
+// Full integrated and optimized TypeScript version for VortexHub Mini-App and Container
 
-// -------------------------------------
-// Interfaces (Common Syntax Across Langs)
-// -------------------------------------
+// src/secure_endpoints.ts
+export const SECURE_API_DATA = {
+  api_keys: [
+    {
+      name: "primary",
+      key: "74074fb6f51063e40f55",
+      secret: "885439176976b165e50f414fdd594a2c75a89f85512927359416b9d79aae93ab",
+    },
+  ],
+  jwt_tokens: [
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  ],
+  uuids: [
+    "019aa299-3759-75d4-8c36-c6b70f6104ea",
+    "019aa29b-0f99-70e3-a899-e693dc4258cd",
+  ],
+  ipfs_pinata: {
+    cid: "bafkreic3uxleigat5kieluw4uq3vrji4flwwsr6ltgme4yn7a2yqnx7nfm",
+    gateway: "https://peach-tropical-reindeer-499.mypinata.cloud",
+    api: "https://app.pinata.cloud/developers/api-keys",
+  },
+  links: [
+    { url: "https://k00.fr/cv9tszq", password: "285861" },
+    { url: "https://k00.fr/k9ourdsf" },
+    { url: "https://app.koofr.net/app/storage/d9699792-7987-4f17-9069-d0a14e681749" },
+    { url: "https://k00.fr/mqdrkha5" },
+  ],
+  file_jason: {
+    storage_path: "/My safe box",
+    filename_encryption: "standard",
+    dir_encryption: true,
+    salt: "m7LAs4ca3s5WGYeTTVAs7IbwJevCr_nUrvEMNnC6ZTsyO0WcV7JPTLSXdCZWYpRGj774CRc8unhuTjto4p9BMufEdn6ktQ08RWVRXg9mvj62YynuW36gadD8jwbRgjvQUIiZVTKl057teVC8C1uzleYkv0dVpJTDq_1gq71mB4Q",
+  },
+  rclone: {
+    name: "my-safe-box",
+    type: "crypt",
+    remote: "koofr:/My safe box",
+    password: "Jbo626Z49ARQQEiNfHJ-EGWO73LA1pQpioJzLQ",
+    password2: "SMQF-LhWfCFP7nVdRFEFDWfbNV8Nf5ZfZOC5veg0Pym2lxhVsC7miuuZNJeo8wZYtWe4L32JAg0cGq-UjF1dgpwJ-dgTKMwXKVcsTS6zX0GIFR9tplSrsJkXSp2U5atyVSSc3LAOgm_aZf989XB_YpO1L0652hmxUdSb4ZXWkH48znNpeA8jFNQ05Jz65hfLNFI1ODBhfPkQInJxXUkNDtI6uEZo0fWRN0ujaglrw2T50ip10gja4degAw",
+  },
+  hashes: [
+    "74074fb6f51063e40f55",
+    "885439176976b165e50f414fdd594a2c75a89f85512927359416b9d79aae93ab",
+  ],
+  base_url: "https://vortex-universal-orchestrator-cppw.onrender.com",
+  cron_api: "/api/cron",
+  telegram_bots: [
+    { bot_token: "8418306947:AAGZZb0qMchirqRLF85ILmp-7Ym1TWoJTT8", username: "@King8906_bot/cybersadatsafe" },
+    { bot_token: "8483782411:AAHFj5eYx2FKI0rVZ640kiX4O-mJMcqJLCQ", username: null },
+    { bot_token: "8285830252:AAGIAklX2i9F_Hpej-AfJgfqoz020oFJ7zI", username: null },
+    { bot_token: "xA92njsK-Secret-Token-7788", username: "secret_repo" },
+  ],
+  other_links: [
+    "https://t.me/Janj1234_bot",
+    "https://t.me/Shenel231_bot",
+    "https://chatgpt.com/share/68e85049-2958-8003-a775-2ba6e7a01bce",
+  ],
+};
 
-interface RepoConfig {
-  name: string;
-  ssh_url: string;
-  https_url: string;
-  folder: string;
-  role: "primary" | "fallback";
+// static/loader.js
+import { SECURE_API_DATA } from '../src/secure_endpoints.js';
+
+function showSecureData() {
+  const el = document.getElementById('secureData');
+  if (!el) return;
+  el.textContent = JSON.stringify(SECURE_API_DATA, null, 2);
 }
 
-interface ScanResult {
-  file: string;
-  size: number;
-  lines: number;
-  extension: string;
-  contentPreview: string;
-  hash?: string;
-  error?: string;
-}
-
-interface RepoAnalysis {
-  repo: string;
-  path: string;
-  files: ScanResult[];
-  fingerprint: string;
-}
-
-interface Task {
-  type: "command" | "service" | "script" | "data";
-  content: string;
-}
-
-// -------------------------------------
-// Crash-Free Exec (Zero Error)
-// -------------------------------------
-
-const safeExec = async (cmd: string) => {
-  return new Promise<string>((resolve) => {
+async function preloadModules(urls: string[]) {
+  const loadedModules: Record<string, any> = {};
+  await Promise.all(urls.map(async (url) => {
     try {
-      exec(cmd, { maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
-        if (err) resolve("");
-        else resolve(stdout.trim());
-      });
-    } catch {
-      resolve("");
-    }
-  });
-};
-
-// -------------------------------------
-// Git Clone + Pull (Resilient)
-// -------------------------------------
-
-const cloneOrPullRepo = async (repo: RepoConfig): Promise<string> => {
-  const localPath = path.join(process.cwd(), repo.folder);
-  try {
-    if (fs.existsSync(localPath)) {
-      await safeExec(`git -C ${localPath} pull --no-edit`);
-    } else {
-      await safeExec(`git clone ${repo.ssh_url} ${localPath}`);
-    }
-  } catch {}
-  return localPath;
-};
-
-// -------------------------------------
-// File Hash (Integrity + Diff Detection)
-// -------------------------------------
-
-const fileHash = (buffer: Buffer) => {
-  try {
-    return crypto.createHash("sha256").update(buffer).digest("hex");
-  } catch {
-    return "";
-  }
-};
-
-// -------------------------------------
-// Directory Scanner (Auto Repairing)
-// -------------------------------------
-
-const scanDirectory = (dirPath: string): ScanResult[] => {
-  const results: ScanResult[] = [];
-
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(dirPath);
-  } catch {
-    results.push({ file: dirPath, size: 0, lines: 0, extension: "", contentPreview: "", error: "Cannot read directory" });
-    return results;
-  }
-
-  for (const file of files) {
-    const fullPath = path.join(dirPath, file);
-    try {
-      const stat = fs.statSync(fullPath);
-
-      if (stat.isDirectory()) {
-        results.push(...scanDirectory(fullPath));
-      } else {
-        let contentPreview = "";
-        let content = Buffer.from("");
-
-        try {
-          content = fs.readFileSync(fullPath);
-          contentPreview = content.toString("utf-8").slice(0, 150);
-        } catch {}
-
-        results.push({
-          file: fullPath,
-          size: stat.size,
-          lines: contentPreview.split("\n").length,
-          extension: path.extname(fullPath),
-          contentPreview,
-          hash: fileHash(content),
-        });
+      if (url.endsWith('.js')) {
+        loadedModules[url] = await import(url);
+      } else if (url.endsWith('.wasm')) {
+        const response = await fetch(url);
+        const buffer = await response.arrayBuffer();
+        const wasmModule = await WebAssembly.instantiate(buffer, {});
+        loadedModules[url] = wasmModule.instance;
+      } else if(url.endsWith('.py')) {
+        const response = await fetch(url);
+        loadedModules[url] = await response.text();
       }
-    } catch {
-      results.push({
-        file: fullPath,
-        size: 0,
-        lines: 0,
-        extension: path.extname(fullPath),
-        contentPreview: "",
-        error: "Cannot access file stats",
-      });
+    } catch (e) {
+      console.warn(`Failed to load module ${url}:`, e);
+    }
+  }));
+  return loadedModules;
+}
+
+(async () => {
+  showSecureData();
+
+  const urls = [
+    SECURE_API_DATA.links[0]?.url || '',
+    SECURE_API_DATA.links[1]?.url || '',
+    SECURE_API_DATA.links[2]?.url || '',
+  ].filter(Boolean);
+
+  const modules = await preloadModules(urls);
+
+  for (const url in modules) {
+    const mod = modules[url];
+    if (mod && mod.exports && typeof mod.exports.init === 'function') {
+      mod.exports.init();
     }
   }
 
-  return results;
-};
+  console.log('Modules loaded:', Object.keys(modules));
+})();
 
-// -------------------------------------
-// Repo Analyzer + Fingerprint Generator
-// -------------------------------------
+// src/index.ts
+import { Container } from "@cloudflare/containers";
+import { Hono } from "hono";
+import type { Env } from "./types";
+import { jwtVerify } from "jose";
+import { SECURE_API_DATA } from "./secure_endpoints";
 
-const analyzeRepo = async (repo: RepoConfig): Promise<RepoAnalysis> => {
-  const localPath = await cloneOrPullRepo(repo);
-  const files = scanDirectory(localPath);
-
-  const fingerprint = crypto
-    .createHash("sha256")
-    .update(files.map((f) => f.hash || "").join(""))
-    .digest("hex");
-
-  return { repo: repo.name, path: localPath, files, fingerprint };
-};
-
-// -------------------------------------
-// Smart Input Engine (Command + Script + Service)
-// -------------------------------------
-
-const processInput = (input: string): Task => {
-  const t = input.trim().toLowerCase();
-
-  if (t.startsWith("run ") || t.startsWith("exec ")) {
-    return { type: "command", content: input };
+async function readFileFallback(path: string): Promise<string> {
+  try {
+    const response = await fetch(path);
+    if (!response.ok) throw new Error("File not found");
+    return await response.text();
+  } catch {
+    return "<h1>Loader file not found</h1>";
   }
-  if (t.includes("service") || t.includes("daemon") || t.includes("worker")) {
-    return { type: "service", content: input };
+}
+
+async function verifyJwtToken(token: string, secret: string): Promise<boolean> {
+  try {
+    await jwtVerify(token, new TextEncoder().encode(secret));
+    return true;
+  } catch {
+    return false;
   }
-  if (t.endsWith(".ts") || t.endsWith(".js") || t.endsWith(".sh") || t.endsWith(".py")) {
-    return { type: "script", content: input };
-  }
-  return { type: "data", content: input };
-};
+}
 
-// -------------------------------------
-// Real‑Time Engine: HTTP + WebSocket + Webhook
-// -------------------------------------
+const app = new Hono<{ Bindings: Env }>();
 
-const PORT = 8080;
-const HOOKS: string[] = [];
-
-const server = http.createServer((req, res) => {
-  if (req.url === "/health") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ status: "ok", uptime: process.uptime() }));
-  }
-
-  if (req.url === "/register-hook" && req.method === "POST") {
-    let body = "";
-    req.on("data", (d) => (body += d));
-    req.on("end", () => {
-      try {
-        const data = JSON.parse(body);
-        if (data.url) HOOKS.push(data.url);
-      } catch {}
-      res.end(JSON.stringify({ ok: true }));
-    });
-    return;
-  }
-
-  res.writeHead(404);
-  res.end("Not Found");
+app.use(['/secure-data', '/logs'], async (c, next) => {
+  const auth = c.req.headers.get("Authorization");
+  if (!auth || !auth.startsWith("Bearer ")) return c.text("Unauthorized", 401);
+  const token = auth.substring(7);
+  const valid = await verifyJwtToken(token, SECURE_API_DATA.api_keys[0].secret);
+  if (!valid) return c.text("Invalid token", 401);
+  await next();
 });
 
-const wss = new WebSocketServer({ server });
+app.get("/", (c) =>
+  c.text(
+    "Available endpoints:\n" +
+      "GET /loader - fetch loader HTML\n" +
+      "POST /secure-data - get secure config JSON (auth required)\n" +
+      "GET /logs - get logs JSON (auth required)"
+  )
+);
 
-const broadcast = (data: any) => {
-  const msg = JSON.stringify(data);
-  wss.clients.forEach((client) => {
+app.get("/loader", async (c) => {
+  const html = await readFileFallback("/static/loader.html");
+  return c.html(html);
+});
+
+app.post("/secure-data", (c) => c.json(SECURE_API_DATA));
+
+app.get("/logs", (c) => {
+  const logs: any[] = [];
+  return c.json({ logs });
+});
+
+export class MyContainer extends Container<Env> {
+  defaultPort = 8080;
+  sleepAfter = "2m";
+  envVars = {
+    NODE_ENV: "production",
+    TELEGRAM_BOT_TOKEN: "<insert_bot_token_here>",
+    RCLONE_REMOTE: SECURE_API_DATA.rclone.remote,
+    PINATA_CID: SECURE_API_DATA.ipfs_pinata.cid,
+  };
+
+  override onStart() {
+    console.log("Container started");
+  }
+
+  override onStop() {
+    console.log("Container stopped");
+  }
+
+  override onError(error: unknown) {
+    console.error("Container error:", error);
+  }
+
+  override async fetch(request: Request): Promise<Response> {
     try {
-      client.send(msg);
-    } catch {}
-  });
-};
-
-// -------------------------------------
-// Main Loop (Realtime Monitor + Trigger System)
-// -------------------------------------
-
-const REPOS: RepoConfig[] = [
-  {
-    name: "vortex-universal-orchestrator",
-    ssh_url: "git@github.com:ahmadahmadiafg085-web/vortex-universal-orchestrator.git",
-    https_url: "https://github.com/ahmadahmadiafg085-web/vortex-universal-orchestrator.git",
-    folder: "container_src",
-    role: "primary",
-  },
-  {
-    name: "vortex-config",
-    ssh_url: "git@github.com:ahmadahmadiafg085-web/vortex-config.git",
-    https_url: "https://github.com/ahmadahmadiafg085-web/vortex-config.git",
-    folder: "config",
-    role: "fallback",
-  },
-];
-
-const start = async () => {
-  server.listen(PORT);
-
-  setInterval(async () => {
-    const results = [];
-    for (const r of REPOS) {
-      const analysis = await analyzeRepo(r);
-      results.push(analysis);
-
-      broadcast({ event: "repo-update", repo: r.name, fingerprint: analysis.fingerprint });
-      for (const h of HOOKS) {
-        safeExec(`curl -X POST -d '${JSON.stringify(analysis)}' ${h}`);
-      }
+      return await app.fetch(request);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      return new Response("Internal Server Error", { status: 500 });
     }
-
-    fs.writeFileSync("repo_analysis.json", JSON.stringify(results, null, 2));
-  }, 5000); // هر ۵ ثانیه مانیتور تریگر
-};
-
-start();
+  }
+}
