@@ -1,33 +1,97 @@
 {
-	"name": "containers-template",
-	"description": "Build a Container-enabled Worker",
-	"private": true,
-	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"cf-typegen": "wrangler types"
-	},
-	"devDependencies": {
-		"typescript": "5.8.3",
-		"wrangler": "^4.25.0"
-	},
-	"dependencies": {
-		"@cloudflare/containers": "^0.0.28",
-		"hono": "4.8.2"
-	},
-	"cloudflare": {
-		"label": "Containers Starter",
-		"products": [
-			"Workers",
-			"Durable Objects",
-			"Containers"
-		],
-		"categories": [],
-		"docs_url": "https://developers.cloudflare.com/containers/",
-		"preview_image_url": "https://imagedelivery.net/_yJ02hpOMj_EnGvsU2aygw/5aba1fb7-b937-46fd-fa67-138221082200/public",
-		"icon_urls": [
-			"https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/5ca0ca32-e897-4699-d4c1-6b680512f000/public"
-		]
-	}
+  "project": {
+    "name": "containers-template",
+    "description": "Build a Container-enabled Worker",
+    "private": true,
+    "scripts": {
+      "deploy": "wrangler deploy",
+      "dev": "wrangler dev",
+      "start": "wrangler dev",
+      "cf-typegen": "wrangler types"
+    },
+    "devDependencies": {
+      "typescript": "5.8.3",
+      "wrangler": "^4.25.0"
+    },
+    "dependencies": {
+      "@cloudflare/containers": "^0.0.28",
+      "hono": "4.8.2"
+    },
+    "cloudflare": {
+      "label": "Containers Starter",
+      "products": [
+        "Workers",
+        "Durable Objects",
+        "Containers"
+      ],
+      "categories": [],
+      "docs_url": "https://developers.cloudflare.com/containers/",
+      "preview_image_url": "https://imagedelivery.net/_yJ02hpOMj_EnGvsU2aygw/5aba1fb7-b937-46fd-fa67-138221082200/public",
+      "icon_urls": [
+        "https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/5ca0ca32-e897-4699-d4c1-6b680512f000/public"
+      ]
+    }
+  },
+  "containers": [
+    {
+      "name": "vortexhub-ai",
+      "image": "vortexhub-container:latest",
+      "ports": [
+        {
+          "container_port": 8080,
+          "host_port": 8080
+        },
+        {
+          "container_port": 8081,
+          "host_port": 8081
+        }
+      ],
+      "endpoints": {
+        "loader": {
+          "path": "/loader",
+          "method": "GET",
+          "auth_required": false
+        },
+        "secure_data": {
+          "path": "/secure-data",
+          "method": "POST",
+          "auth_required": true
+        },
+        "logs": {
+          "path": "/logs",
+          "method": "GET",
+          "auth_required": true
+        }
+      },
+      "description": "AI Container with secure API and loader UI",
+      "environment": {
+        "NODE_ENV": "production",
+        "CDN_PROVIDERS": [
+          "https://peach-tropical-reindeer-499.mypinata.cloud",
+          "https://k00.fr"
+        ]
+      },
+      "restart_policy": "always",
+      "volumes": [
+        {
+          "host_path": "./logs",
+          "container_path": "/app/logs"
+        }
+      ]
+    }
+  ],
+  "repositories": [
+    {
+      "name": "vortexhub-container",
+      "url": "https://github.com/ahmadahmadiafg085-web/vortexhub-container",
+      "branch": "main",
+      "auto_update": true
+    },
+    {
+      "name": "cloudflare-templates",
+      "url": "https://github.com/cloudflare/templates",
+      "branch": "main",
+      "auto_update": true
+    }
+  ]
 }
