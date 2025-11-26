@@ -1,4 +1,4 @@
-// src/secure_endpoints.ts
+// src/index.ts
 const SECURE_API_DATA = {
   api_keys: [
     {
