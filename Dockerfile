@@ -3,40 +3,39 @@
 ########## BUILDER ##########
 FROM golang:1.24-alpine AS build
 
+# Set working directory
 WORKDIR /app
 
-# Dependencies
+# ------------------- Go dependencies -------------------
 COPY container_src/go.mod container_src/go.sum ./
 RUN go mod download
 
-# App source
+# ------------------- Copy source -------------------
 COPY container_src/*.go ./
 
-# Build static binary
+# ------------------- Build static binary -------------------
 RUN CGO_ENABLED=0 GOOS=linux go build -o server
 
-# Static assets + configs
+# ------------------- Copy static HTML/Loader -------------------
 COPY server_src/static ./static
+
+# ------------------- Copy configuration files -------------------
 COPY server_src/config ./config
 
-########## FINAL ##########
+########## FINAL IMAGE ##########
 FROM scratch
 
-# Create working dirs
+# ------------------- Create directories -------------------
+# در Cloudflare نیازی به cgroup یا runtime پیچیده نیست
 WORKDIR /app
-RUN mkdir -p /etc/ssl/certs
-
-# SSL
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
-# Binary
-COPY --from=build /app/server /server
-
-# Static & config
+COPY --from=build /app/server /app/server
 COPY --from=build /app/static /app/static
 COPY --from=build /app/config /app/config
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-# Flexible ports
-EXPOSE 8080-8090
+# ------------------- Expose single port -------------------
+# Cloudflare خودش مسیر routing را مدیریت می‌کند
+EXPOSE 8080
 
-CMD ["/server"]
+# ------------------- Default command -------------------
+CMD ["/app/server"]
