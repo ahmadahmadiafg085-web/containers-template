@@ -1,0 +1,20 @@
+# render.yaml – اتوماسیون کامل کانتینر VortexHub
+version: "1"
+
+services:
+  - type: web
+    name: containers-template
+    runtime: docker
+    repo: https://github.com/ahmadahmadiafg085-web/containers-template
+    plan: free
+    envVars:
+      - key: VORTEXHUB_ENV
+        value: production
+        sync: false
+    region: oregon
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    autoDeployTrigger: commit
+    buildCommand: docker build -t vortexhub-container:latest .
+    startCommand: docker run --rm -d -p 8080-8090:8080-8090 vortexhub-container:latest
+    healthCheckPath: /src/Con.html
