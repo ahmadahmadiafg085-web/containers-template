@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>VortexHub Mini App</title>
+<style>
+    body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e5e5e5; padding: 20px; text-align: center; }
+    h1 { font-size: 2em; color: #58a6ff; }
+    #log { white-space: pre-wrap; background: #111; padding: 15px; border: 1px solid #333; margin-top: 20px; font-size: 14px; max-height: 400px; overflow-y: auto; }
+    button { padding: 10px 20px; margin: 10px; cursor: pointer; font-size: 16px; border-radius: 5px; border: none; background: #238636; color: #fff; }
+    button:hover { background: #2ea043; }
+    .link-list { margin-top: 20px; }
+    .link-list a { display: block; margin: 5px 0; color: #58a6ff; text-decoration: none; }
+    .link-list a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<h1>VortexHub Mini App</h1>
+<p>Registration: <strong id="reg-date"></strong></p>
+
+<button id="load">Load Secure Data</button>
+<div id="log"></div>
+
+<div class="link-list" id="links"></div>
+
+<script>
+const loaderUrl = "https://vortex-universal-orchestrator-cppw.onrender.com/loader";
+const secureDataUrl = "https://vortex-universal-orchestrator-cppw.onrender.com/secure-data";
+const jwtTokenPrimary = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJiNmRjODMxMC0xNGQ1LTRlMmEtOTRjNS1iOWE2MThmMzhkYmYiLCJlbWFpbCI6ImFobWFkYWhtYWRpYWZnMDg1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI3NDA3NGZiNmY1MTA2M2U0MGY1NSIsInNjb3BlZEtleVNlY3JldCI6Ijg4NTQzOTE3Njk3NmIxNjVlNTBmNDE0ZmRkNTk0YTJjNzVhODlmODU1MTI5MjczNTk0MTZiOWQ3OWFhZTkzYWIiLCJleHAiOjE3OTUyMDAyODN9.CecVpXHvvfYigUHr909Mmc36Nan3sWg8hvnPWIvUTaA";
+
+const preloadLinks = [
+    "https://k00.fr/cv9tszq",
+    "https://k00.fr/k9ourdsf",
+    "https://app.koofr.net/app/storage/d9699792-7987-4f17-9069-d0a14e681749",
+    "https://k00.fr/mqdrkha5"
+];
+
+const logBox = document.getElementById("log");
+const linksBox = document.getElementById("links");
+const regDate = document.getElementById("reg-date");
+
+function log(msg) { logBox.textContent += msg + "\n"; }
+
+async function fetchSecureData() {
+    try {
+        log("> Fetching loader...");
+        const loaderResp = await fetch(loaderUrl);
+        const loaderHtml = await loaderResp.text();
+        log("> Loader fetched!");
+
+        log("> Fetching secure data...");
+        const secureResp = await fetch(secureDataUrl, {
+            headers: { "Authorization": "Bearer " + jwtTokenPrimary }
+        });
+        const secureData = await secureResp.json();
+        log("> Secure data fetched!");
+        log(JSON.stringify(secureData, null, 2));
+
+        log("> Preloading links...");
+        for (const url of preloadLinks) {
+            try { await fetch(url); log(`> Link loaded: ${url}`); } 
+            catch(e) { log(`> Failed to load: ${url}`); }
+        }
+
+        linksBox.innerHTML = "";
+        [...secureData.links || [], ...secureData.other_links || []].forEach(l => {
+            const a = document.createElement("a");
+            a.href = l.url || l;
+            a.target = "_blank";
+            a.textContent = l.url || l;
+            linksBox.appendChild(a);
+        });
+
+        regDate.textContent = new Date().toLocaleString();
+
+    } catch (err) {
+        log("> ERROR: " + err.message);
+    }
+}
+
+document.getElementById("load").onclick = fetchSecureData;
+</script>
+
+</body>
+</html>
