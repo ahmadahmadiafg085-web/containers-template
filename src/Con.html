@@ -1,60 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>VortexHub Loader</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            background: #0d1117;
-            color: #e5e5e5;
-            padding: 20px;
-        }
-        #log {
-            white-space: pre;
-            background: #000;
-            padding: 15px;
-            border: 1px solid #333;
-            margin-top: 20px;
-            font-size: 14px;
-        }
-        button {
-            padding: 10px 15px;
-            cursor: pointer;
-            font-size: 15px;
-        }
-    </style>
+<meta charset="UTF-8" />
+<title>VortexHub Loader</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #0d1117, #161b22);
+        color: #e5e5e5;
+        padding: 20px;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+    }
+    h1 {
+        font-size: 2rem;
+        margin-bottom: 5px;
+        color: #58a6ff;
+    }
+    .brand {
+        font-size: 1rem;
+        color: #79c0ff;
+        margin-bottom: 20px;
+    }
+    #registerDate {
+        font-size: 0.9rem;
+        color: #8b949e;
+        margin-bottom: 30px;
+    }
+    #log {
+        white-space: pre-wrap;
+        background: rgba(0,0,0,0.85);
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #30363d;
+        margin-top: 20px;
+        font-size: 14px;
+        width: 90%;
+        max-width: 900px;
+        height: 400px;
+        overflow-y: auto;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    button {
+        padding: 12px 20px;
+        cursor: pointer;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        background: #238636;
+        color: #fff;
+        transition: all 0.2s ease-in-out;
+    }
+    button:hover {
+        background: #2ea043;
+        transform: scale(1.05);
+    }
+</style>
 </head>
 <body>
 
-    <h1>VortexHub Container Test</h1>
-    <button id="load">Load</button>
+<h1>VortexHub Container</h1>
+<div class="brand">Powered by VortexHub Labs</div>
+<div id="registerDate">Registered on: 27-Nov-2025</div>
+<button id="load">Load Container</button>
+<div id="log"></div>
 
-    <div id="log"></div>
+<script>
+const logBox = document.getElementById("log");
+const log = msg => {
+    logBox.textContent += msg + "\n";
+    logBox.scrollTop = logBox.scrollHeight;
+};
 
-    <script>
-        const log = msg => {
-            logBox.textContent += msg + "\n";
-        };
+async function loadContainer() {
+    try {
+        log("> Fetching loader...");
+        const loaderRes = await fetch("/loader");
+        if (!loaderRes.ok) throw new Error("Loader not found or server error");
+        const loaderHtml = await loaderRes.text();
+        log("> Loader HTML loaded successfully");
 
-        const logBox = document.getElementById("log");
+        log("> Fetching secure container data...");
+        const secureRes = await fetch("/secure-data", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer <INSERT_JWT_HERE>",
+                "Content-Type": "application/json"
+            }
+        });
+        if (!secureRes.ok) throw new Error("Unauthorized or invalid token");
+        const containerData = await secureRes.json();
+        log("> Secure container data fetched:");
+        log(JSON.stringify(containerData, null, 2));
 
-        async function loadContainer() {
-            try {
-                const loader = await fetch("/loader").then(r => r.json());
-                log("> Loader:");
-                log(JSON.stringify(loader, null, 2));
-
-                const container = await fetch(loader.url).then(r => r.text());
-                log("\n> Container:");
-                log(container);
-
-            } catch (err) {
-                log("> Error: " + err.message);
+        log("> Attempting to load modules from links...");
+        if (containerData.links && containerData.links.length) {
+            for (const link of containerData.links) {
+                try {
+                    log(`>> Fetching module: ${link.url}`);
+                    const modRes = await fetch(link.url);
+                    if (!modRes.ok) throw new Error(`Failed to load ${link.url}`);
+                    const modText = await modRes.text();
+                    log(`>> Module loaded: ${link.url} (length: ${modText.length})`);
+                    // Optional: eval(modText) or import dynamically if safe
+                } catch(e) {
+                    log(`>> Error loading module: ${e.message}`);
+                }
             }
         }
 
-        document.getElementById("load").onclick = loadContainer;
-    </script>
+        log("> Container load complete ✅");
+
+    } catch (err) {
+        log("> Error: " + err.message);
+    }
+}
+
+document.getElementById("load").onclick = loadContainer;
+</script>
 </body>
 </html>
