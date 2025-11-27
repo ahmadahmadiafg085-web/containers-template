@@ -1,0 +1,28 @@
+# Step 1: Build Go backend
+FROM golang:1.25-alpine AS go-builder
+WORKDIR /app
+COPY container_src/ .
+RUN go mod tidy && go build -o vortexhub-go main.go
+
+# Step 2: Build Node/TS loader
+FROM node:22-alpine AS node-builder
+WORKDIR /app
+COPY server_src/package*.json ./
+RUN npm install
+COPY server_src/ ./ 
+RUN npm run build
+
+# Step 3: Final container
+FROM alpine:latest
+WORKDIR /app
+
+# Copy Go binary
+COPY --from=go-builder /app/vortexhub-go ./vortexhub-go
+
+# Copy Node build
+COPY --from=node-builder /app/dist ./dist
+COPY --from=node-builder /app/src/loader ./loader
+COPY --from=node-builder /app/src/config ./config
+
+EXPOSE 8080-8090
+CMD ["./vortexhub-go"]
