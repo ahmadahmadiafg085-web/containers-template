@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VortexHub AI Q&A</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
+
+    body {
+      font-family: 'Varela Round', sans-serif;
+      background: linear-gradient(135deg, #1f1c2c, #928dab);
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin-top: 40px;
+      font-size: 2.5em;
+      text-align: center;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(15px);
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 600px;
+      width: 90%;
+      margin: 20px 0;
+      box-shadow: 0 8px 32px 0 rgba(0,0,0,0.37);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 15px;
+      border-radius: 15px;
+      border: none;
+      outline: none;
+      resize: none;
+      font-size: 1em;
+      margin-bottom: 15px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      backdrop-filter: blur(5px);
+    }
+
+    button {
+      padding: 12px 25px;
+      border-radius: 15px;
+      border: none;
+      background: linear-gradient(90deg, #ff758c, #ff7eb3);
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    pre {
+      background: rgba(255,255,255,0.05);
+      padding: 15px;
+      border-radius: 15px;
+      overflow-x: auto;
+      font-size: 0.95em;
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.85em;
+      color: #ccc;
+    }
+
+    a {
+      color: #ff7eb3;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<h1>VortexHub AI Q&A</h1>
+
+<div class="container">
+  <label for="jsonInput">سوال یا JSON ورودی:</label>
+  <textarea id="jsonInput" placeholder='{"question":"سلام، وضعیت سرور چطوره؟"}'></textarea>
+  <button id="processBtn">پاسخ هوشمند</button>
+
+  <h2>پاسخ:</h2>
+  <pre id="output">هنوز سوالی ارسال نشده است...</pre>
+</div>
+
+<div class="footer">
+  Powered by <strong>VortexHub</strong> | 
+  <a href="https://888a5d2e.config-3yz.pages.dev" target="_blank">لینک سرویس</a>
+</div>
+
+<script>
+  const processBtn = document.getElementById('processBtn');
+  const output = document.getElementById('output');
+
+  processBtn.addEventListener('click', () => {
+    let input;
+    try {
+      input = JSON.parse(document.getElementById('jsonInput').value);
+    } catch(e) {
+      output.textContent = "JSON نامعتبر است: " + e.message;
+      return;
+    }
+
+    const result = processData(input);
+    output.textContent = JSON.stringify(result, null, 2);
+  });
+
+  function processData(data) {
+    // تابع هوشمند: می‌توانی اینجا API بک‌اند واقعی خودت را هم فراخوانی کنی
+    return {
+      ...data,
+      processedAt: new Date().toISOString(),
+      answer: `💡 پاسخ هوشمند VortexHub: ${data.question ? "سوال شما دریافت شد و در حال پردازش است." : "لطفاً سوالی وارد کنید."}`
+    };
+  }
+</script>
+
+</body>
+</html>

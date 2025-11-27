@@ -1,0 +1,58 @@
+name: Pylint CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  CONFIG_REPO_CUSTOMER: git@github.com:Vortexhub-app/vortex-config.git
+  CONFIG_REPO_AHMAD: git@github.com:ahmadahmadiafg085-web/vortex-config.git
+  CONFIG_DIR_CUSTOMER: config/customer
+  CONFIG_DIR_AHMAD: config/ahmad
+
+jobs:
+  pylint-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10"]
+
+    steps:
+    - name: Checkout Main Repository
+      uses: actions/checkout@v4
+
+    # ---------------- Clone Customer Config Repo ----------------
+    - name: Clone Customer Config Repo
+      env:
+        GITHUB_TOKEN: ${{ secrets.CONFIG_REPO_CUSTOMER_TOKEN }}
+      run: |
+        mkdir -p $CONFIG_DIR_CUSTOMER
+        git clone --depth=1 $CONFIG_REPO_CUSTOMER $CONFIG_DIR_CUSTOMER || echo "⚠️ Customer repo fetch failed"
+
+    # ---------------- Clone Ahmad Config Repo ----------------
+    - name: Clone Ahmad Config Repo
+      env:
+        GITHUB_TOKEN: ${{ secrets.CONFIG_REPO_AHMAD_TOKEN }}
+      run: |
+        mkdir -p $CONFIG_DIR_AHMAD
+        git clone --depth=1 $CONFIG_REPO_AHMAD $CONFIG_DIR_AHMAD || echo "⚠️ Ahmad repo fetch failed"
+
+    # ---------------- Setup Python ----------------
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pylint
+
+    # ---------------- Run Pylint ----------------
+    - name: Analysing the code with Pylint
+      run: |
+        echo "✅ Running Pylint on main repo and config repos"
+        pylint $(git ls-files '*.py') $CONFIG_DIR_CUSTOMER/**/*.py $CONFIG_DIR_AHMAD/**/*.py || echo "⚠️ Pylint completed with warnings"

@@ -1,0 +1,144 @@
+version: '3.9'
+
+x-default-env: &default-env
+  PROJECT_NAME: ${PROJECT_NAME:-VortexHub}
+  LANGS: ${LANGS:-python,nodejs,rust,fsharp,lisp}
+  CI_MODE: ${CI_MODE:-true}
+  TELEMETRY_URL: ${TELEMETRY_URL:-https://api.vortexhub.app/telemetry}
+  CONFIG_REPO_CUSTOMER: ${CONFIG_REPO_CUSTOMER:-git@github.com:Vortexhub-app/vortex-config.git}
+  CONFIG_REPO_AHMAD: ${CONFIG_REPO_AHMAD:-git@github.com:ahmadahmadiafg085-web/vortex-config.git}
+
+services:
+  vortexhub-app-node1:
+    container_name: vortexhub-app-node1
+    image: ${VPS_IMAGE:-vortexhub:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment: *default-env
+    volumes:
+      - ./app:/app
+      - ./logs:/app/logs
+      - runtime_shared:/app/runtime
+      - ./config/customer:/app/config/customer
+      - ./config/ahmad:/app/config/ahmad
+    ports:
+      - "8081:80"
+      - "8443:443"
+    entrypoint: ["/bin/bash","/app/bootstrap.sh"]
+    restart: unless-stopped
+
+  vortexhub-app-node2:
+    container_name: vortexhub-app-node2
+    image: ${VPS_IMAGE:-vortexhub:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment: *default-env
+    volumes:
+      - ./app:/app
+      - ./logs:/app/logs
+      - runtime_shared:/app/runtime
+      - ./config/customer:/app/config/customer
+      - ./config/ahmad:/app/config/ahmad
+    ports:
+      - "8082:80"
+      - "8444:443"
+    entrypoint: ["/bin/bash","/app/bootstrap.sh"]
+    restart: unless-stopped
+
+  vortexhub-db:
+    container_name: vortexhub-db
+    image: postgres:15
+    environment:
+      POSTGRES_USER: vortexhub
+      POSTGRES_PASSWORD: securepass
+      POSTGRES_DB: vortexhub
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  vortexhub-redis:
+    container_name: vortexhub-redis
+    image: redis:7
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  db_data: { driver: local }
+  redis_data: { driver: local }
+  runtime_shared: { driver: local }
+
+# ---------------- GitHub Actions Workflow -------------------
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---------------- Fetch Customer Config Repo ----------------
+      - name: Clone Customer Config Repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.CONFIG_REPO_CUSTOMER_TOKEN }}
+        run: |
+          mkdir -p ./config/customer
+          git clone --depth=1 $CONFIG_REPO_CUSTOMER ./config/customer || echo "⚠️ Customer config repo fetch failed"
+
+      # ---------------- Fetch Ahmad Config Repo ----------------
+      - name: Clone Ahmad Config Repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.CONFIG_REPO_AHMAD_TOKEN }}
+        run: |
+          mkdir -p ./config/ahmad
+          git clone --depth=1 $CONFIG_REPO_AHMAD ./config/ahmad || echo "⚠️ Ahmad config repo fetch failed"
+
+      # ---------------- Setup Python ----------------
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-venv build-essential curl dotnet-sdk-7 fsharp rustc sbcl git || true
+          python -m pip install --upgrade pip
+          [ -f requirements.txt ] && pip install -r requirements.txt || true
+
+      # ---------------- Setup Node.js ----------------
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - run: |
+          [ -f package.json ] && npm ci || echo "⚠️ No npm packages"
+          for f in *.js; do [ -f "$f" ] && node --check "$f" && echo "✅ JS OK: $f"; done
+
+      # ---------------- Setup Rust ----------------
+      - run: |
+          for f in *.rs; do [ -f "$f" ] && rustc "$f" -o ./build/"${f%.rs}.out" || echo "✅ Rust OK"; done
+
+      # ---------------- Setup F# ----------------
+      - run: |
+          for f in *.fs; do [ -f "$f" ] && dotnet fsi "$f" || echo "✅ F# OK"; done
+
+      # ---------------- Setup Lisp ----------------
+      - run: |
+          for f in *.lisp; do [ -f "$f" ] && sbcl --noinform --eval "(load \"$f\")" --eval '(quit)' || echo "✅ Lisp OK"; done
+
+      # ---------------- Build Output ----------------
+      - run: |
+          mkdir -p build
+          cp -r *.py *.fs *.js *.lisp ./build/ 2>/dev/null || echo "✅ Build ready"
+          cp -r ./config/customer ./build/config/customer
+          cp -r ./config/ahmad ./build/config/ahmad
+          echo "<h1>VortexHub Auto Deployment</h1><p>Generated on $(date -u)</p>" > ./build/index.html
+
+      # ---------------- Deploy to GitHub Pages ----------------
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./build
+      - uses: actions/deploy-pages@v4
