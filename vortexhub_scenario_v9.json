@@ -1,0 +1,131 @@
+{
+  "schema": "UNIFIED_RUNTIME_KERNEL_ADAPTER_SYSTEM",
+  "schema_version": "v634-vortexhub-adapter-universal-v9",
+  "app_version": "2025.12.21-vortexhub-full-fusion-v9",
+  "generated_at": "AUTO_GENERATED",
+  "environment": "internal_runtime",
+
+  "__docs__": {
+    "overview": "Unified system DSL formal JSON scenario UI/runtime layer. DSL core fixed, runtime reads and enforces. VORTEXHUB UNIVERSAL ADAPTER V9 ALL VERSIONS v5-v9 MERGED ZERO DELETION 100% PRESERVATION ALL CHAT HISTORY + FILE-1.TXT + ALL PREVIOUS INSTRUCTIONS + VORTEX_REPOS + CORE_FILES + BUILD_PATHS MULTIPLE MODELS NO CONFLICT FULL FUSION 135 ADAPTERS 50 HARDWARE 60 PORTS 15+ RUNTIMES TOKEN SYSTEM COMPLETE.",
+    "design_principles": [
+      "DSL core formal and unambiguous",
+      "Runtime executes DSL, not replaces it",
+      "Adapters bridge DSL → runtime",
+      "JSON is scenario/config/UI layer, updateable",
+      "Versioning and dependency tracking enabled",
+      "No field removal, backward compatible",
+      "JSON central brain, DSL formal core, worker muscle WASM sandbox, HTML skin UI swappable",
+      "Zero deletion policy across ALL versions v5-v9, ALL manifests, ports, runtimes, adapters, hardware, token system, UI schema, INPUT/OUTPUT specs, REPOS/FILES",
+      "Parallel sandbox isolation: هر sandbox مستقل + موازی + انتزاعی + user input validation + structured output + download capability",
+      "ALL chat instructions + file-1.txt + vortex_repos + core_files + build_paths FULLY PRESERVED NO CONFLICT"
+    ]
+  },
+
+  "dsl_core": {
+    "__formal_model": "S = ⟨ FS, AD, SA, RT, CP, KB, HW, IDX, TS, UI, ARCHIVE, BOOT, VORTEX, PORTS, WORKER, IO ⟩",
+    "FS": "filesystem scan: root, recursive, depth, targets, exclude",
+    "AD": "adapter discovery: sources, detection methods, auto classification",
+    "SA": "source analysis: static, semantic, control flow, dependency graph, auto language detection",
+    "RT": "runtime: detect mode, sandboxed execution, strict isolation, binding semantic + capability mirror, token check, edge native, limits, PARALLEL_SANDBOX",
+    "CP": "capability layer: generation, default DENY, dynamic resolution, token based, hardcoded disabled",
+    "KB": "kernel bridge: abstract syscall, process, memory, descriptor, interrupt models",
+    "HW": "hardware support and access mediation via adapters only, kernel controlled",
+    "IDX": "auto index: registers, syscalls, memory pages, devices, modules",
+    "TS": "token system: daily free, plans, modules, autosync, autolog",
+    "UI": "UI schema: tabs, components, dynamic render, language switch, auto generate",
+    "ARCHIVE": "archive engine: format detection, extraction pipeline, plugin registry, normalizer",
+    "BOOT": "bootstrap and entry manifest: XECO universal adapter / runtime OS single entry, locked IR contract, zero deletion",
+    "VORTEX": "VortexHub config: SSH dual main, R2, repos, engines, adapters, workers",
+    "PORTS": "ports: master ports, query ports, runtime ports, hardware ports, capability mapped",
+    "WORKER": "worker: VortexHub worker V9, JS/WASM sandbox, dynamic build, postbuild assets",
+    "IO": "input/output specification: user input validation, function signatures, variable types, structured output, download handlers"
+  },
+
+  "vortex_repos": {
+    "CONFIGREPO_CUSTOMER": "git@github.com:Vortexhub-app/vortex-config.git",
+    "CONFIGREPO_AHMAD": "git@github.com:ahmadahmadiafg085-web/vortex-config.git",
+    "GITHUBREPO": "https://github.com/ahmadahmadiafg085-web/All-in-one.git",
+    "GITHUBRAW": "https://raw.githubusercontent.com/ahmadahmadiafg085-web/All-in-one/main",
+    "R2ACCOUNTID": "08ce8cdb927ff46f0134f1ac5439613e",
+    "R2ALLINONE": "https://pub-73c7d280176a4096b078afe1186f34f6.r2.dev",
+    "R2PRIMARY": "https://pub-7ec5bccfac2d4f9ab9c9aae8aa367168.r2.dev",
+    "VORTEXHUBDOMAIN": "https://vortexhub.app.com",
+    "PYTOIDENDPOINT": "api/engines/pytoid60",
+    "COMMANDERWS": "ws://127.0.0.1:8766/VORTEXHUBV9HYPERAUTHX",
+    "TELEMETRYURL": "https://api.vortexhub.app/telemetry"
+  },
+
+  "core_files": {
+    "python": ".app/main.py",
+    "nodejs": ".app/index.js",
+    "rust": ".app/main.rs",
+    "fsharp": ".app/main.fs",
+    "lisp": ".app/main.lisp",
+    "wasm": ".build/wasm/NanoBridge.wasm",
+    "go": ".github/assets/runtimes/vortexhub-ultimate.go",
+    "php": ".github/assets/runtimes/vortexhub-ultimate.php",
+    "csharp": ".github/assets/adapters/csharp-adapter-static-v6.25.js",
+    "wasm_core": ".build/wasm/VORTEXWASMCORE6.wasm",
+    "dashboard": ".github/assets/ui/vortexhub-dashboard-v9.html"
+  },
+
+  "build_paths": {
+    "dynamic_build": ".scripts/dynamic-build.sh",
+    "config_customer": ".config/customer",
+    "config_ahmad": ".config/ahmad",
+    "github_assets": ".github/assets",
+    "r2_shards": ".build/shards",
+    "build_output": ".build"
+  },
+
+  "io_specification": {
+    "__docs__": "ورودی/خروجی کامل + validation + parallel sandbox + download capability + user input legal bounds",
+    "user_input_validation": {
+      "legal_inputs": {
+        "string": {"max_length": 10000, "allowed_chars": "UTF-8", "sanitize": true},
+        "number": {"min": -9223372036854775808, "max": 9223372036854775807, "type": "int64"},
+        "array": {"max_length": 1000, "nested_depth": 5},
+        "object": {"max_keys": 100, "max_depth": 10},
+        "file": {"max_size": "100MB", "allowed_types": ["json", "txt", "js", "py", "wasm", "zip"]},
+        "code": {"max_lines": 50000, "allowed_languages": ["python", "js", "rust", "go", "php", "csharp"]},
+        "tokens": {"min": 0, "max": 1000000}
+      },
+      "validation_strategy": "STRICT_TYPE_CHECK + SANITIZE + SIZE_LIMIT + TOKEN_CHECK",
+      "error_handling": "structured_error_response + retry_policy + user_notification"
+    },
+    "function_signatures": {
+      "execute_module": {
+        "input": {
+          "module_id": "string(1-50)",
+          "user_input": "object(any)",
+          "tokens": "number(1-1000)",
+          "sandbox_id": "string(UUID)",
+          "language": "enum[python,nodejs,rust,fsharp,lisp,wasm,go,php,csharp]"
+        },
+        "output": {
+          "status": "enum[success,error,timeout]",
+          "result": "object(any)",
+          "execution_time": "number(ms)",
+          "tokens_used": "number",
+          "sandbox_id": "string",
+          "download_url": "string(optional)"
+        }
+      },
+      "parallel_execute": {
+        "input": {
+          "modules": "array<object(module_id,user_input)>",
+          "max_parallel": "number(1-32)",
+          "isolation": "enum[STRICT, SHARED, NONE]"
+        },
+        "output": {
+          "results": "array<object>",
+          "parallel_execution": true,
+          "total_time": "number(ms)",
+          "sandbox_instances": "number"
+        }
+      },
+      "upload_file": {
+        "input": {
+          "file": "file(max:100MB)",
+          "sandbox_id": "string",
+          "auto_analyze": "
