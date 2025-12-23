@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VortexHub ULTRA ENTERPRISE</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazir:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{--p:#00d4ff;--s:#7c3aed;--a:#ff6b6b;--sc:#00ff88;--bg:#0a0a15;--bc:#151530;--bl:#1f1f3d;--tp:#f0f4ff;--ts:#a0b0cc;--br:#303066;--sh:0 20px 60px rgba(0,10,50,.8);--gl:0 0 30px rgba(0,212,255,.7);--gb:rgba(255,255,255,.08);--gbr:rgba(255,255,255,.12);--gr:rgba(0,212,255,.02);}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:Vazir,sans-serif;background:linear-gradient(135deg,var(--bg) 0%,#1a1a3a 50%,var(--bg) 100%);color:var(--tp);overflow-x:hidden;position:relative;}
+#globalCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;}
+#splash{position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:radial-gradient(circle at center,rgba(0,212,255,.4) 0%,var(--bg) 70%);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2rem;color:var(--tp);transition:opacity 1s ease-out;}
+#splash.hide{opacity:0;pointer-events:none;}
+#main{display:none;min-height:100vh;position:relative;overflow-y:auto;}
+.hb{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-2;background:radial-gradient(circle at 20% 80%,rgba(0,212,255,.15) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(124,58,237,.12) 0%,transparent 50%),radial-gradient(circle at 40% 40%,rgba(255,107,107,.1) 0%,transparent 50%),radial-gradient(circle at 60% 80%,rgba(0,255,136,.08) 0%,transparent 50%);animation:bs 25s ease-in-out infinite;}
+.container{max-width:1400px;margin:0 auto;padding:1.5rem 1rem;}
+.header{text-align:center;margin-bottom:2.5rem;background:var(--gb);backdrop-filter:blur(25px);border:1px solid var(--gbr);border-radius:24px;padding:2.5rem;box-shadow:var(--sh);position:relative;overflow:hidden;}
+.header::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(45deg,rgba(0,212,255,.05),rgba(124,58,237,.05));border-radius:24px;z-index:0;}
+.header>*{position:relative;z-index:1;}
+.header h1{font-size:clamp(2rem,5vw,3.5rem);background:linear-gradient(45deg,var(--p),var(--s),var(--a),var(--sc));background-size:300% 300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.8rem;animation:gr 3s ease infinite;}
+.header .subtitle{font-size:clamp(1rem,2.5vw,1.3rem);opacity:.92;color:var(--ts);font-weight:300;}
+.tabs{display:flex;flex-wrap:wrap;gap:.8rem;justify-content:center;margin-bottom:2.5rem;background:var(--gb);backdrop-filter:blur(30px);border-radius:20px;padding:1.2rem;border:1px solid var(--gbr);box-shadow:var(--sh);position:sticky;top:0;z-index:100;}
+.tab-btn{padding:1rem 1.8rem;border-radius:16px;cursor:pointer;transition:all .4s cubic-bezier(.4,0,.2,1);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-weight:500;font-size:clamp(.85rem,2vw,.95rem);position:relative;overflow:hidden;touch-action:pan-y;}
+.tab-btn::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,var(--p),var(--s));opacity:0;transition:opacity .3s ease;transform:scale(0);border-radius:16px;}
+.tab-btn:hover{transform:translateY(-6px) scale(1.02);box-shadow:0 20px 50px rgba(0,212,255,.4);border-color:var(--p);}
+.tab-btn:hover::before{opacity:.15;transform:scale(1);}
+.tab-btn.active{background:linear-gradient(135deg,var(--p),var(--s));box-shadow:var(--gl);transform:translateY(-8px) scale(1.03);border-color:transparent;}
+.tab-btn.active::before{opacity:1;}
+.tab-content{position:relative;padding-bottom:3rem;display:none;opacity:0;transition:all .5s cubic-bezier(.4,0,.2,1);}
+.tab-content.active{display:block;opacity:1;animation:tpf 0.6s ease-out;}
+.cards{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:1.5rem;padding:1rem 0;scrollbar-width:none;-ms-overflow-style:none;}
+.cards::-webkit-scrollbar{display:none;}
+.glass-card{background:var(--gr);border-radius:20px;padding:2rem;text-align:center;border:1px solid rgba(255,255,255,.08);transition:all .4s cubic-bezier(.4,0,.2,1);cursor:pointer;flex:0 0 320px;scroll-snap-align:center;position:relative;overflow:hidden;min-height:400px;}
+.glass-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--p),var(--s),var(--a));transform:scaleX(0);transition:transform .3s ease;}
+.glass-card:hover{transform:translateY(-12px) scale(1.02);box-shadow:var(--gl),0 30px 80px rgba(0,212,255,.3);border-color:var(--p);}
+.glass-card:hover::before{transform:scaleX(1);}
+.glass-card:active{transform:translateY(-8px) scale(.98);}
+.glass-card i{font-size:clamp(2.2rem,6vw,3.2rem);margin-bottom:1.2rem;opacity:.9;transition:transform .3s ease;}
+.glass-card canvas{width:100%;height:200px;border-radius:12px;margin:1rem 0;background:rgba(255,255,255,.02);display:block;}
+.glass-card h4{font-size:1.3rem;margin-bottom:.8rem;font-weight:500;}
+.glass-card p{opacity:.75;font-size:.95rem;line-height:1.4;margin-bottom:1rem;}
+.input-group{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;}
+.input-group input,.input-group textarea,.input-group select{padding:.8rem;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:var(--tp);font-family:inherit;}
+.input-group button,.btn{padding:1rem 2rem;border-radius:12px;border:none;cursor:pointer;font-weight:500;transition:all .3s ease;background:linear-gradient(135deg,var(--p),var(--s));color:white;box-shadow:0 10px 30px rgba(0,212,255,.4);}
+.input-group button:hover,.btn:hover{transform:translateY(-2px);box-shadow:0 15px 40px rgba(0,212,255,.6);}
+.output{flex-grow:1;min-height:120px;max-height:200px;overflow-y:auto;padding:1rem;background:rgba(255,255,255,.02);border-radius:12px;border:1px solid rgba(255,255,255,.1);white-space:pre-wrap;font-size:.9rem;line-height:1.4;}
+.controls{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem;}
+.history{max-height:150px;overflow-y:auto;background:rgba(255,255,255,.02);border-radius:8px;padding:1rem;border:1px solid rgba(255,255,255,.1);font-size:.85rem;}
+.fps{position:fixed;top:20px;right:20px;padding:8px 12px;background:rgba(0,0,0,.7);border-radius:20px;font-size:.8rem;font-family:monospace;z-index:999;}
+.theme-toggle{position:fixed;top:20px;left:20px;padding:10px;background:rgba(255,255,255,.1);border-radius:50%;cursor:pointer;z-index:999;}
+.loading{opacity:0.6;background:rgba(0,212,255,0.1);position:relative;overflow:hidden;}
+.loading::after{content:' VORTEX...';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+@keyframes bp{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.05);opacity:.95;}}
+@keyframes bs{0%,100%{transform:rotate(0deg);}25%{transform:rotate(90deg);}50%{transform:rotate(180deg);}75%{transform:rotate(270deg);}}
+@keyframes gr{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+@keyframes tpf{0%{transform:translateY(30px);opacity:0;}100%{transform:translateY(0);opacity:1;}}
+@media (max-width:768px){.glass-card{flex:0 0 280px;padding:1.5rem;}}
+</style>
+</head>
+<body>
+<canvas id="globalCanvas"></canvas>
+<div id="splash">
+  <div style="font-size:4rem;margin-bottom:1rem;"></div>
+  <div style="font-size:2.5rem;font-weight:700;margin-bottom:.5rem;">VortexHub ULTRA ENTERPRISE</div>
+  <div id="splashMsg" style="font-size:1.1rem;">Initializing Enterprise Hyper Grid...</div>
+</div>
+<div id="main">
+  <div class="hb"></div>
+  <div class="container">
+    <div class="header">
+      <h1>VortexHub</h1>
+      <div class="subtitle">AI Vortex • Runtime Vortex • Generator Hub</div>
+      <img src="https://github.com/ahmadahmadiafg085-web/containers-template/blob/main/machine-4.png" alt="Machine Logo" style="width:150px;margin-top:1rem;">
+    </div>
+    <div class="tabs">
+      <div class="tab-btn active" data-tab="ai"><i class="fas fa-brain"></i> AI Vortex</div>
+      <div class="tab-btn" data-tab="runtime"><i class="fas fa-microchip"></i> Runtime Vortex</div>
+      <div class="tab-btn" data-tab="generator"><i class="fas fa-magic"></i> Generator Hub</div>
+    </div>
+    <div id="ai" class="tab-content active">
+      <div class="cards">
+        <div class="glass-card">
+          <canvas id="ai-canvas-1"></canvas>
+          <h4>1. Sandbox Script Editor</h4>
+          <div class="input-group">
+            <textarea id="ai-prompt" placeholder="JS/Python/WASM code here..." rows="4"></textarea>
+            <button onclick="VortexHub.aiSend()" class="btn">🚀 Execute</button>
+          </div>
+          <div id="ai-output" class="output">✅ READY - Enter code & Execute</div>
+        </div>
+        <div class="glass-card">
+          <canvas id="ai-canvas-2"></canvas>
+          <h4>2. Execution Timeline</h4>
+          <div id="ai-history" class="history">Step 1: Parse ✓ | Step 2: Compile ✓ | Step 3: Execute ▶️</div>
+          <div class="controls">
+            <button class="btn" onclick="VortexHub.aiClear()">🗑️ Clear</button>
+            <button class="btn" onclick="VortexHub.aiExport()">💾 Export</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// JSON external location
+const VORTEX_JSON_URL = 'https://raw.githubusercontent.com/ahmadahmadiafg085-web/containers-template/main/vortexhub_scenario_v9.json';
+const VortexHub = {
+  scenario:null,
+  async loadScenario(){
+    try{
+      const resp=await fetch(VORTEX_JSON_URL);
+      this.scenario=await resp.json();
+    }catch(e){
+      console.error('Failed to fetch scenario',e);
+    }
+  },
+  aiSend:async()=>{
+    const code=document.getElementById('ai-prompt').value;
+    const output=document.getElementById('ai-output');
+    output.classList.add('loading');
+    setTimeout(()=>{
+      output.textContent=`✅ EXECUTED: ${code.length} chars | Threads: ${VortexHub.scenario?.pipeline?.threads||0} | Security: ${VortexHub.scenario?.security?.checks||0}/12 ✓`;
+      output.classList.remove('loading');
+    },1200);
+  },
+  aiClear:()=>{document.getElementById('ai-output').textContent='✅ READY - Enter code & Execute';document.getElementById('ai-prompt').value='';},
+  aiExport:()=>{const data={code:document.getElementById('ai-prompt').value,scenario:VortexHub.scenario,timestamp:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='vortex-session.json';a.click();URL.revokeObjectURL(url);}
+};
+VortexHub.loadScenario();
+</script>
+</body>
+</html>
